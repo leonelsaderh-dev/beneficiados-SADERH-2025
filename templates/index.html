@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>SADERH - Beneficiados 2025</title>
+
+
+
+<style>
+
+/* ===== GENERAL ===== */
+body{
+    font-family: 'Segoe UI', sans-serif;
+    margin:20px;
+    background:#f4f6f9;
+}
+
+/* ===== HEADER ===== */
+.header{
+    background: linear-gradient(90deg,#691b31,#a02142);
+    color:white;
+    padding:20px;
+    border-radius:12px;
+    box-shadow:0 4px 10px rgba(0,0,0,0.2);
+}
+
+/* ===== KPI CARDS ===== */
+.kpis{
+    display:flex;
+    gap:20px;
+    margin-top:20px;
+}
+
+.card{
+    flex:1;
+    background:white;
+    border-left:8px solid #691b31;
+    padding:20px;
+    border-radius:10px;
+    box-shadow:0 4px 12px rgba(0,0,0,0.1);
+    transition:0.3s;
+}
+
+.card:hover{
+    transform:scale(1.03);
+}
+
+.card h3{
+    margin:0;
+    color:#691b31;
+}
+
+.card p{
+    font-size:28px;
+    font-weight:bold;
+}
+
+/* ===== BOTONES ===== */
+.acciones{
+    margin-top:20px;
+}
+
+.btn{
+    display:inline-block;
+    padding:10px 20px;
+    margin-right:10px;
+    border-radius:8px;
+    text-decoration:none;
+    color:white;
+    font-weight:bold;
+    transition:0.3s;
+    box-shadow:0 4px 8px rgba(0,0,0,0.2);
+}
+
+.btn:hover{
+    transform:translateY(-2px);
+}
+
+.btn.excel{background:#1D6F42;}
+.btn.pdf{background:#a02142;}
+.btn.salir{background:#555;}
+
+/* ===== FILTROS ===== */
+.filtros{
+    margin-top:20px;
+    display:flex;
+    gap:10px;
+    flex-wrap:wrap;
+    align-items:center;
+}
+
+input, select{
+    padding:8px;
+    border-radius:6px;
+    border:1px solid #ccc;
+    margin-right:5px;
+}
+
+.btn-filtro{
+    display:inline-block;
+    padding:10px 20px;
+    border:none;
+    border-radius:8px;
+    color:white;
+    font-weight:bold;
+    cursor:pointer;
+    transition:0.3s;
+    box-shadow:0 4px 8px rgba(0,0,0,0.2);
+    font-size:14px;
+}
+
+.btn-filtro:hover{
+    transform:translateY(-2px);
+    box-shadow:0 6px 12px rgba(0,0,0,0.3);
+}
+
+.btn-buscar{
+    background: linear-gradient(90deg,#691b31,#a02142);
+}
+
+.btn-buscar:active{
+    transform:translateY(0);
+}
+
+.btn-limpiar{
+    background:#a02142;
+}
+
+.btn-limpiar:active{
+    transform:translateY(0);
+}
+
+th{
+    background:#691b31;
+    color:white;
+}
+
+td,th{
+    padding:8px 12px;
+    text-align:center;
+    font-size:13px;
+}
+
+td{
+    max-width:150px;
+    word-wrap:break-word;
+    white-space:normal;
+}
+
+/* ===== ANCHOS ESPECÍFICOS POR COLUMNA ===== */
+th:nth-child(1), td:nth-child(1) { width: 60px; } /* ID */
+th:nth-child(2), td:nth-child(2) { width: 120px; } /* Nombre(s) */
+th:nth-child(3), td:nth-child(3) { width: 100px; } /* Primer apellido */
+th:nth-child(4), td:nth-child(4) { width: 100px; } /* Segundo apellido */
+th:nth-child(5), td:nth-child(5) { width: 80px; } /* Sexo */
+th:nth-child(6), td:nth-child(6) { width: 90px; } /* Fecha */
+th:nth-child(7), td:nth-child(7) { width: 150px; } /* Apoyo */
+th:nth-child(8), td:nth-child(8) { width: 180px; } /* Subprograma */
+th:nth-child(9), td:nth-child(9) { width: 100px; } /* Monto en pesos */
+th:nth-child(10), td:nth-child(10) { width: 120px; } /* Municipio */
+th:nth-child(11), td:nth-child(11) { width: 70px; } /* Edad */
+
+tr:nth-child(even){
+    background:#f2f2f2;
+}
+
+/* ===== TABLA ===== */
+table{
+    width:100%;
+    border-collapse:collapse;
+    margin-top:10px;
+    background:white;
+    box-shadow:0 4px 12px rgba(0,0,0,0.1);
+    border-radius:10px;
+    overflow:hidden;
+}
+
+</style>
+</head>
+
+<body>
+
+<!-- HEADER -->
+<div class="header">
+    <h1>Beneficiados 2025</h1>
+    <h3>Secretaría de Agricultura y Desarrollo Rural de Hidalgo - Dirección General de Evaluación y Programas Estratégicos - INDISIA</h3>
+</div>
+
+<!-- FILTROS -->
+<div class="filtros">
+<input id="busqueda" placeholder="Buscar" type="text" />
+
+<select id="municipio">
+<option value="">Municipio</option>
+{% for m in municipios %}
+<option value="{{m}}">{{m}}</option>
+{% endfor %}
+</select>
+
+<select id="subprograma">
+<option value="">Subprograma</option>
+{% for s in subprogramas %}
+<option value="{{s}}">{{s}}</option>
+{% endfor %}
+</select>
+
+<button class="btn-filtro btn-buscar" onclick="actualizar()">🔍 Buscar</button>
+<button class="btn-filtro btn-limpiar" onclick="limpiar()">✖ Limpiar</button>
+</div>
+
+<!-- KPIs -->
+<div class="kpis">
+<div class="card">
+<h3>Total de Beneficiados</h3>
+<p id="total">{{total}}</p>
+</div>
+
+<div class="card">
+<h3>Monto Total</h3>
+<p id="suma">{{suma}}</p>
+</div>
+</div>
+
+<!-- BOTONES -->
+<div class="acciones">
+<a href="/excel" class="btn excel">📊 Excel</a>
+<a href="/pdf" class="btn pdf">📄 PDF</a>
+<a href="/logout" class="btn salir">🔒 Salir</a>
+</div>
+
+<!-- TABLA -->
+<h3>Resultados</h3>
+<table id="tabla"></table>
+
+<script>
+function normalizar(t){
+return t.toUpperCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").trim();
+}
+
+function formatearFecha(valor, nombreColumna){
+    if(!nombreColumna || (!nombreColumna.toLowerCase().includes('fecha') && !nombreColumna.toLowerCase().includes('date'))) return valor;
+    if(!valor) return valor;
+    
+    let fecha;
+    if(typeof valor === 'string'){
+        fecha = new Date(valor);
+        if(isNaN(fecha.getTime())) return valor;
+    } else {
+        return valor;
+    }
+    
+    let dia = String(fecha.getDate()).padStart(2, '0');
+    let mes = String(fecha.getMonth() + 1).padStart(2, '0');
+    let anio = fecha.getFullYear();
+    
+    return dia + '/' + mes + '/' + anio;
+}
+
+function actualizar(){
+    console.log("Iniciando actualización...");
+    
+    fetch("/filtrar",{
+        method:"POST",
+        headers:{"Content-Type":"application/json"},
+        body:JSON.stringify({
+            busqueda: document.getElementById("busqueda").value,
+            municipio: document.getElementById("municipio").value,
+            subprograma: document.getElementById("subprograma").value
+        })
+    })
+    .then(r => {
+        if (!r.ok) {
+            console.error("Error HTTP:", r.status);
+            throw new Error(`Error HTTP ${r.status}`);
+        }
+        return r.json();
+    })
+    .then(data => {
+        console.log("✅ Datos recibidos del servidor:", data);
+        
+        // ACTUALIZAR TEXTOS (KPIs)
+        const totalEl = document.getElementById("total");
+        const sumaEl = document.getElementById("suma");
+        
+        if (totalEl) {
+            console.log(`Actualizando total: ${data.total}`);
+            totalEl.innerText = data.total;
+        }
+        if (sumaEl) {
+            console.log(`Actualizando suma: ${data.suma}`);
+            sumaEl.innerText = data.suma;
+        }
+
+        // ACTUALIZAR TABLA
+        const tablaEl = document.getElementById("tabla");
+        if (tablaEl) {
+            console.log(`Registros en tabla: ${data.tabla.length}`);
+            let html = "<tr>";
+            data.columnas.forEach(c => html += "<th>" + c + "</th>");
+            html += "</tr>";
+            data.tabla.forEach(f => {
+                html += "<tr>";
+                f.forEach((c, idx) => {
+                    let valorFormateado = formatearFecha(c, data.columnas[idx]);
+                    html += "<td>" + valorFormateado + "</td>";
+                });
+                html += "</tr>";
+            });
+            tablaEl.innerHTML = html;
+            console.log("✅ Tabla actualizada");
+        }
+    })
+    .catch(error => {
+        console.error("❌ Error al actualizar:", error);
+        alert("Error al actualizar los datos: " + error.message);
+    });
+}
+
+// FUNCIÓN LIMPIAR - Resetea todos los filtros
+function limpiar(){
+    console.log("Limpiando filtros...");
+    document.getElementById("busqueda").value = "";
+    document.getElementById("municipio").value = "";
+    document.getElementById("subprograma").value = "";
+    
+    // Recargar la página para mostrar todos los datos
+    location.reload();
+}
+
+console.log("✅ Botones configurados: Buscar y Limpiar (sin auto-actualización)");
+
+window.onload=function(){
+    console.log("Página cargada, ejecutando búsqueda inicial...");
+    actualizar();
+};
+</script>
+
+</body>
+</html>
