@@ -2,8 +2,8 @@
 <html>
 <head>
 <title>SADERH - Beneficiados 2025</title>
-
-
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels"></script>
 
 <style>
 
@@ -174,6 +174,59 @@ table{
     overflow:hidden;
 }
 
+/* ===== GRÁFICAS ===== */
+.graficas-container {
+    display: flex;
+    gap: 30px;
+    margin-top: 40px;
+    flex-wrap: wrap;
+    justify-content: space-between;
+}
+
+.grafica-box {
+    flex: 1;
+    min-width: 400px;
+    background: white;
+    padding: 20px;
+    border-radius: 12px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+
+.grafica-box h3 {
+    margin-top: 0;
+    color: #691b31;
+    text-align: center;
+    font-size: 18px;
+}
+
+.chart-wrapper {
+    position: relative;
+    height: 450px;
+    width: 100%;
+}
+
+.btn-descargar {
+    display: inline-block;
+    padding: 8px 16px;
+    background: linear-gradient(90deg, #691b31, #a02142);
+    color: white;
+    border: none;
+    border-radius: 6px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: 0.3s;
+    font-size: 13px;
+}
+
+.btn-descargar:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+.btn-descargar:active {
+    transform: translateY(0);
+}
+
 </style>
 </head>
 
@@ -211,7 +264,7 @@ table{
 <div class="kpis">
 <div class="card">
 <h3>Total de Beneficiados</h3>
-<p id="total">{{total}}</p>
+<p id="total">{{ "{:,}".format(total) }}</p>
 </div>
 
 <div class="card">
@@ -227,6 +280,36 @@ table{
 <a href="/logout" class="btn salir">🔒 Salir</a>
 </div>
 
+<!-- GRÁFICAS -->
+<div class="graficas-container">
+    <div class="grafica-box">
+        <h3>📊 Municipios por Monto</h3>
+        <div class="chart-wrapper">
+            <canvas id="chartMunicipios"></canvas>
+        </div>
+        <div style="text-align: center; margin-top: 15px;">
+            <button class="btn-descargar" onclick="descargarPNG('chartMunicipios', 'municipios_monto.png')">
+                ⬇️ Descargar PNG
+            </button>
+            <button class="btn-descargar" onclick="descargarGraficaCompleta()">
+                📥 Descargar Completa
+            </button>
+
+        </div>
+    </div>
+    <div class="grafica-box">
+        <h3>🥧 Subprogramas (Porcentaje)</h3>
+        <div class="chart-wrapper">
+            <canvas id="chartSubprogramas"></canvas>
+        </div>
+        <div style="text-align: center; margin-top: 15px;">
+            <button class="btn-descargar" onclick="descargarPNG('chartSubprogramas', 'subprogramas_porcentaje.png')">
+                ⬇️ Descargar PNG
+            </button>
+        </div>
+    </div>
+</div>
+
 <!-- TABLA -->
 <h3>Resultados</h3>
 <table id="tabla"></table>
@@ -234,6 +317,102 @@ table{
 <script>
 function normalizar(t){
 return t.toUpperCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").trim();
+}
+
+function descargarGraficaCompleta() {
+    // Obtener datos completos (asumiendo que están en data.municipios_full del último fetch)
+    // Como no tenemos acceso directo, hacer un fetch para obtener todos
+    fetch("/filtrar", {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify({
+            busqueda: document.getElementById("busqueda").value,
+            municipio: document.getElementById("municipio").value,
+            subprograma: document.getElementById("subprograma").value
+        })
+    })
+    .then(r => r.json())
+    .then(data => {
+        const municipios_data = data.municipios_full;
+        
+        // Crear un canvas temporal más grande
+        const canvas = document.createElement('canvas');
+        canvas.width = 1200;
+        canvas.height = Math.max(800, municipios_data.labels.length * 20); // Altura dinámica
+        const ctx = canvas.getContext('2d');
+        
+        // Crear el gráfico
+        const chart = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: municipios_data.labels,
+                datasets: [{
+                    label: 'Monto en pesos',
+                    data: municipios_data.valores,
+                    backgroundColor: 'rgba(169, 33, 66, 0.8)',
+                    borderColor: 'rgba(105, 27, 49, 1)',
+                    borderWidth: 2,
+                    borderRadius: 8
+                }]
+            },
+            options: {
+                indexAxis: 'y',
+                responsive: false,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false },
+                    datalabels: {
+                        anchor: 'end',
+                        align: 'end',
+                        formatter: function(value) {
+                            return '$' + value.toLocaleString('es-MX');
+                        },
+                        font: {
+                            size: 10,
+                            weight: 'bold'
+                        },
+                        color: '#333'
+                    }
+                },
+                scales: {
+                    y: {
+                        ticks: {
+                            font: {
+                                size: 10
+                            }
+                        }
+                    },
+                    x: {
+                        beginAtZero: true,
+                        ticks: {
+                            callback: function(value) {
+                                return '$' + value.toLocaleString('es-MX');
+                            }
+                        }
+                    }
+                }
+            },
+            plugins: [ChartDataLabels]
+        });
+        
+        // Descargar después de renderizar
+        setTimeout(() => {
+            canvas.toBlob(function(blob) {
+                const url = window.URL.createObjectURL(blob);
+                const link = document.createElement('a');
+                link.href = url;
+                link.download = 'municipios_completo.png';
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                window.URL.revokeObjectURL(url);
+            }, 'image/png');
+        }, 1000); // Esperar a que se renderice
+    })
+    .catch(error => {
+        console.error("Error al descargar gráfica completa:", error);
+        alert("Error al generar la gráfica completa");
+    });
 }
 
 function formatearFecha(valor, nombreColumna){
@@ -255,6 +434,120 @@ function formatearFecha(valor, nombreColumna){
     return dia + '/' + mes + '/' + anio;
 }
 
+// GRÁFICA DE MUNICIPIOS
+let chartMunicipios = null;
+function dibujarGraficaMunicipios(municipios_data) {
+    const ctx = document.getElementById('chartMunicipios').getContext('2d');
+    
+    if (chartMunicipios) chartMunicipios.destroy();
+    
+    chartMunicipios = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: municipios_data.labels,
+            datasets: [{
+                label: 'Monto en pesos',
+                data: municipios_data.valores,
+                backgroundColor: 'rgba(169, 33, 66, 0.8)',
+                borderColor: 'rgba(105, 27, 49, 1)',
+                borderWidth: 2,
+                borderRadius: 8
+            }]
+        },
+        options: {
+            indexAxis: 'y',
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { display: false },
+                datalabels: {
+                    anchor: 'end',
+                    align: 'end',
+                    formatter: function(value) {
+                        return '$' + value.toLocaleString('es-MX');
+                    },
+                    font: {
+                        size: 10,
+                        weight: 'bold'
+                    },
+                    color: '#333'
+                }
+            },
+            scales: {
+                y: {
+                    ticks: {
+                        font: {
+                            size: 8
+                        }
+                    }
+                },
+                x: {
+                    beginAtZero: true,
+                    ticks: {
+                        callback: function(value) {
+                            return '$' + value.toLocaleString('es-MX');
+                        }
+                    }
+                }
+            }
+        },
+        plugins: [ChartDataLabels]
+    });
+}
+
+// GRÁFICA DE SUBPROGRAMAS
+let chartSubprogramas = null;
+function dibujarGraficaSubprogramas(subprogramas_data) {
+    const ctx = document.getElementById('chartSubprogramas').getContext('2d');
+    
+    if (chartSubprogramas) chartSubprogramas.destroy();
+
+    // 🔥 ORDENAR DE MAYOR A MENOR
+    let datosOrdenados = subprogramas_data.labels.map((label, i) => ({
+        label: label,
+        valor: subprogramas_data.porcentajes[i]
+    }));
+
+    datosOrdenados.sort((a, b) => b.valor - a.valor);
+
+    const labelsOrdenados = datosOrdenados.map(d => d.label);
+    const valoresOrdenados = datosOrdenados.map(d => d.valor);
+
+    const colores = [
+        '#FF6B6B','#36A2EB','#4BC04B','#FFCE56','#A9A9A9',
+        '#FF9F40','#9966FF','#C9CBCF','#FF6384','#00BDBD',
+        '#48D1CC','#228B22','#FFD700','#DC143C','#4169E1',
+        '#32CD32','#FF8C00','#8A2BE2','#BDB76B','#FFC0CB'
+    ];
+
+    chartSubprogramas = new Chart(ctx, {
+        type: 'pie',
+        data: {
+            labels: labelsOrdenados.map((l, i) => `${l} (${valoresOrdenados[i].toFixed(1)}%)`),
+            datasets: [{
+                data: valoresOrdenados,
+                backgroundColor: colores.slice(0, labelsOrdenados.length),
+                borderColor: 'white',
+                borderWidth: 2
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'right', // 👈 ESTE ES EL CAMBIO CLAVE
+                    labels: {
+                        padding: 10,
+                        font: {
+                            size: 11
+                        }
+                    }
+                }
+            }
+        }
+    });
+}
 function actualizar(){
     console.log("Iniciando actualización...");
     
@@ -283,11 +576,21 @@ function actualizar(){
         
         if (totalEl) {
             console.log(`Actualizando total: ${data.total}`);
-            totalEl.innerText = data.total;
+            totalEl.innerText = Number(data.total).toLocaleString('es-MX');
         }
         if (sumaEl) {
             console.log(`Actualizando suma: ${data.suma}`);
             sumaEl.innerText = data.suma;
+        }
+
+        // DIBUJAR GRÁFICAS
+        if (data.municipios_monto) {
+            console.log("Dibujando gráfica de municipios...");
+            dibujarGraficaMunicipios(data.municipios_monto);
+        }
+        if (data.subprogramas_data) {
+            console.log("Dibujando gráfica de subprogramas...");
+            dibujarGraficaSubprogramas(data.subprogramas_data);
         }
 
         // ACTUALIZAR TABLA
