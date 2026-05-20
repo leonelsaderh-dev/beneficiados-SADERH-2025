@@ -1,6 +1,4 @@
-flask
 pandas
 openpyxl
-plotly
-reportlab
+flask
 gunicorn
